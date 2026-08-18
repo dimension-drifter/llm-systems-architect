@@ -1,0 +1,12 @@
+settings:
+  orchestrator.sagemaker:
+    synchronous: false
+
+parameters:
+  user_full_name: Deepam Tater # [First Name(s)] [Last Name]
+  links:
+    # Starter articles until per-source extractors land (see README Overview).
+    # Target corpus: Lilian Weng, Chip Huyen, Sebastian Raschka, Tim Dettmers,
+    # Hugging Face Engineering Blog, Simon Willison.
+    - https://huggingface.co/blog/rlhf
+    - https://huggingface.co/blog/llama2

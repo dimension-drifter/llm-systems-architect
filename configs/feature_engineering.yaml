@@ -1,0 +1,7 @@
+settings:
+  orchestrator.sagemaker:
+    synchronous: false
+
+parameters:
+  author_full_names:
+    - Deepam Tater

@@ -1,0 +1,10 @@
+settings:
+  orchestrator.sagemaker:
+    synchronous: false
+
+parameters:
+  test_split_size: 0.05
+  dataset_type: "preference"
+  push_to_huggingface: true
+  dataset_id: dimension-drifter/preference-dataset
+  mock: false
