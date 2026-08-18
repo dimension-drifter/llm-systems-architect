@@ -1,13 +1,15 @@
 name: CD
 
+# Manual only. This job needs AWS ECR secrets and will fail on every
+# push until those exist. Run it from Actions → CD → Run workflow
+# after setting AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION,
+# and AWS_ECR_NAME in the repo secrets.
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 concurrency:
-    group: ${{ github.workflow }}-${{ github.ref }}
-    cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:

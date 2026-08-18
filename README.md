@@ -529,7 +529,9 @@ We leverage Qdrant's and MongoDB's serverless options when deploying the project
 
 #### GitHub Actions
 
-We use GitHub Actions to implement our CI/CD pipelines. Set the following env vars as Actions secrets in your repository:
+CI (lint and tests) runs on pull requests. The Docker/ECR deploy workflow does **not** run on every push. It is manual: Actions → CD → Run workflow.
+
+When you are ready to deploy images to AWS, add these repository secrets, then run CD:
 - `AWS_ACCESS_KEY_ID`
 - `AWS_SECRET_ACCESS_KEY`
 - `AWS_ECR_NAME`
