@@ -11,7 +11,7 @@ from llm_engineering.domain.cleaned_documents import (
     CleanedRepositoryDocument,
 )
 
-from .operations import chunk_article, chunk_text
+from .operations.chunking import ARTICLE_CHUNK_OVERLAP, ARTICLE_CHUNK_SIZE, chunk_article, chunk_text
 
 CleanedDocumentT = TypeVar("CleanedDocumentT", bound=CleanedDocument)
 ChunkT = TypeVar("ChunkT", bound=Chunk)
@@ -72,8 +72,8 @@ class ArticleChunkingHandler(ChunkingDataHandler):
     @property
     def metadata(self) -> dict:
         return {
-            "min_length": 1000,
-            "max_length": 2000,
+            "chunk_size": ARTICLE_CHUNK_SIZE,
+            "chunk_overlap": ARTICLE_CHUNK_OVERLAP,
         }
 
     def chunk(self, data_model: CleanedArticleDocument) -> list[ArticleChunk]:
@@ -81,7 +81,9 @@ class ArticleChunkingHandler(ChunkingDataHandler):
 
         cleaned_content = data_model.content
         chunks = chunk_article(
-            cleaned_content, min_length=self.metadata["min_length"], max_length=self.metadata["max_length"]
+            cleaned_content,
+            chunk_size=self.metadata["chunk_size"],
+            chunk_overlap=self.metadata["chunk_overlap"],
         )
 
         for chunk in chunks:

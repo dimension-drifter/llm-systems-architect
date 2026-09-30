@@ -1,6 +1,6 @@
 from sklearn.model_selection import train_test_split
 
-from llm_engineering.application.preprocessing.operations.chunking import chunk_document
+from llm_engineering.application.preprocessing.operations.chunking import chunk_article
 from llm_engineering.domain.cleaned_documents import CleanedDocument
 from llm_engineering.domain.dataset import (
     InstructDataset,
@@ -103,12 +103,10 @@ def filter_answer_format(data: dict[DataCategory, PreferenceDataset]) -> dict[Da
     return filtered_data
 
 
-def extract_substrings(
-    documents: list[CleanedDocument], min_length: int = 1000, max_length: int = 2000
-) -> list[CleanedDocument]:
+def extract_substrings(documents: list[CleanedDocument]) -> list[CleanedDocument]:
     extracts = []
     for document in documents:
-        document_extracts = chunk_document(document.content, min_length, max_length)
+        document_extracts = chunk_article(document.content)
         for extract in document_extracts:
             subdocument = document.model_copy()
             subdocument.content = extract

@@ -71,7 +71,7 @@ Examples:
 )
 @click.option(
     "--etl-config-filename",
-    default="digital_data_etl.yaml",
+    default="digital_data_etl_ai_architect.yaml",
     help="Filename of the ETL config file.",
 )
 @click.option(
@@ -114,7 +114,7 @@ def main(
     no_cache: bool = False,
     run_end_to_end_data: bool = False,
     run_etl: bool = False,
-    etl_config_filename: str = "digital_data_etl.yaml",
+    etl_config_filename: str = "digital_data_etl_ai_architect.yaml",
     run_export_artifact_to_json: bool = False,
     run_feature_engineering: bool = False,
     run_generate_instruct_datasets: bool = False,
@@ -145,7 +145,10 @@ def main(
     root_dir = Path(__file__).resolve().parent.parent
 
     if run_end_to_end_data:
-        run_args_end_to_end = {}
+        from tools.fetch_architect_links import load_author_links
+
+        architect_config = root_dir / "configs" / "digital_data_etl_ai_architect.yaml"
+        run_args_end_to_end = {"author_links": load_author_links(architect_config)}
         pipeline_args["config_path"] = root_dir / "configs" / "end_to_end_data.yaml"
         assert pipeline_args["config_path"].exists(), f"Config file not found: {pipeline_args['config_path']}"
         pipeline_args["run_name"] = f"end_to_end_data_run_{dt.now().strftime('%Y_%m_%d_%H_%M_%S')}"

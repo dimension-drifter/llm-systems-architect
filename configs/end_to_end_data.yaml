@@ -3,13 +3,7 @@ settings:
     synchronous: false
 
 parameters:
-  # Data ETL & Feature engineering pipelines parameters
-  author_links:
-    - user_full_name: Deepam Tater # [First Name(s)] [Last Name]
-      links:
-        # Starter articles; full six-source corpus is documented in README Overview.
-        - https://huggingface.co/blog/rlhf
-        - https://huggingface.co/blog/llama2
+  # author_links are loaded from configs/digital_data_etl_ai_architect.yaml in tools/run.py.
   # Generate instruct dataset pipeline parameters
   test_split_size: 0.1
   push_to_huggingface: false
