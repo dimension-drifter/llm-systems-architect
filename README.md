@@ -570,11 +570,9 @@ poetry poe run-digital-data-etl
 ```
 
 > [!WARNING]
-> You must have Chrome (or another Chromium-based browser) installed on your system for LinkedIn and Medium crawlers to work (which use Selenium under the hood). Based on your Chrome version, the Chromedriver will be automatically installed to enable Selenium support. Another option is to run everything using our Docker image if you don't want to install Chrome. For example, to run all the pipelines combined you can run `poetry poe run-docker-end-to-end-data-pipeline`. Note that the command can be tweaked to support any other pipeline.
+> LinkedIn and Medium crawlers launch Chromium through Playwright. Install that browser once with `poetry run playwright install chromium`. The Docker image installs it at build time, so `poetry poe run-docker-end-to-end-data-pipeline` does not need a local Chrome install. That command can be tweaked for any other pipeline.
 >
-> If, for any other reason, you don't have a Chromium-based browser installed and don't want to use Docker, you have two other options to bypass this Selenium issue:
-> - Comment out all the code related to Selenium, Chrome and all the links that use Selenium to crawl them (e.g., Medium), such as the `chromedriver_autoinstaller.install()` command from [application.crawlers.base](llm_engineering/application/crawlers/base.py) and other static calls that check for Chrome drivers and Selenium.
-> - Install Google Chrome using your CLI in environments such as GitHub Codespaces or other cloud VMs using the same command as in our [Docker file](Dockerfile).
+> If you cannot install Chromium and do not want Docker, drop Medium and LinkedIn URLs from the ETL config. Other hosts use `CustomArticleCrawler`.
 
 The six-source systems corpus (Weng, Huyen, Raschka, Dettmers, Hugging Face, Willison) is specified in [Overview](#overview). Dedicated extractors are not wired yet; unknown hosts use `CustomArticleCrawler`. Add article URLs in `configs/digital_data_etl.yaml` under `links`. Prefer article URLs. Large GitHub repositories will fail: the GitHub crawler clones the whole repo into one Mongo document (16MB limit). Also, you can create a completely new file and specify it at run time, like this: `poetry run python -m tools.run --run-etl --etl-config-filename digital_data_etl.yaml`
 

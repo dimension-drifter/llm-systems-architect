@@ -50,3 +50,5 @@ cython_debug/
 output/
 sagemaker_*.json
 run_ids.txt
+extras/
+.claude.md

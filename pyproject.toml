@@ -19,12 +19,10 @@ datasets = "^3.0.1"
 torch = "2.2.2"
 
 # Digital data ETL
-selenium = "^4.21.0"
-webdriver-manager = "^4.0.1"
+playwright = "^1.49.0"
 beautifulsoup4 = "^4.12.3"
 html2text = "^2024.2.26"
 jmespath = "^1.0.1"
-chromedriver-autoinstaller = "^0.6.4"
 
 # Feature engineering
 qdrant-client = "^1.8.0"

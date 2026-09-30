@@ -4,16 +4,15 @@ from typing import Dict, List
 from bs4 import BeautifulSoup
 from bs4.element import Tag
 from loguru import logger
-from selenium.webdriver.common.by import By
 
 from llm_engineering.domain.documents import PostDocument
 from llm_engineering.domain.exceptions import ImproperlyConfigured
 from llm_engineering.settings import settings
 
-from .base import BaseSeleniumCrawler
+from .base import BasePlaywrightCrawler
 
 
-class LinkedInCrawler(BaseSeleniumCrawler):
+class LinkedInCrawler(BasePlaywrightCrawler):
     model = PostDocument
 
     def __init__(self, scroll_limit: int = 5, is_deprecated: bool = True) -> None:
@@ -21,83 +20,78 @@ class LinkedInCrawler(BaseSeleniumCrawler):
 
         self._is_deprecated = is_deprecated
 
-    def set_extra_driver_options(self, options) -> None:
-        options.add_experimental_option("detach", True)
-
     def login(self) -> None:
         if self._is_deprecated:
             raise DeprecationWarning(
                 "As LinkedIn has updated its security measures, the login() method is no longer supported."
             )
 
-        self.driver.get("https://www.linkedin.com/login")
+        self.page.goto("https://www.linkedin.com/login")
         if not settings.LINKEDIN_USERNAME or not settings.LINKEDIN_PASSWORD:
             raise ImproperlyConfigured(
                 "LinkedIn scraper requires the {LINKEDIN_USERNAME} and {LINKEDIN_PASSWORD} settings."
             )
 
-        self.driver.find_element(By.ID, "username").send_keys(settings.LINKEDIN_USERNAME)
-        self.driver.find_element(By.ID, "password").send_keys(settings.LINKEDIN_PASSWORD)
-        self.driver.find_element(By.CSS_SELECTOR, ".login__form_action_container button").click()
+        self.page.locator("#username").fill(settings.LINKEDIN_USERNAME)
+        self.page.locator("#password").fill(settings.LINKEDIN_PASSWORD)
+        self.page.locator(".login__form_action_container button").click()
 
     def extract(self, link: str, **kwargs) -> None:
-        if self._is_deprecated:
-            raise DeprecationWarning(
-                "As LinkedIn has updated its feed structure, the extract() method is no longer supported."
+        try:
+            if self._is_deprecated:
+                raise DeprecationWarning(
+                    "As LinkedIn has updated its feed structure, the extract() method is no longer supported."
+                )
+
+            if self.model.link is not None:
+                old_model = self.model.find(link=link)
+                if old_model is not None:
+                    logger.info(f"Post already exists in the database: {link}")
+
+                    return
+
+            logger.info(f"Starting scrapping data for profile: {link}")
+
+            self.login()
+
+            soup = self._get_page_content(link)
+
+            data = {  # noqa
+                "Name": self._scrape_section(soup, "h1", class_="text-heading-xlarge"),
+                "About": self._scrape_section(soup, "div", class_="display-flex ph5 pv3"),
+                "Main Page": self._scrape_section(soup, "div", {"id": "main-content"}),
+                "Experience": self._scrape_experience(link),
+                "Education": self._scrape_education(link),
+            }
+
+            self.page.goto(link)
+            time.sleep(5)
+            self.page.locator(".app-aware-link.profile-creator-shared-content-view__footer-action").click()
+
+            # Scrolling and scraping posts
+            self.scroll_page()
+            soup = BeautifulSoup(self.page.content(), "html.parser")
+            post_elements = soup.find_all(
+                "div",
+                class_="update-components-text relative update-components-update-v2__commentary",
+            )
+            buttons = soup.find_all("button", class_="update-components-image__image-link")
+            post_images = self._extract_image_urls(buttons)
+
+            posts = self._extract_posts(post_elements, post_images)
+            logger.info(f"Found {len(posts)} posts for profile: {link}")
+
+            user = kwargs["user"]
+            self.model.bulk_insert(
+                [
+                    PostDocument(platform="linkedin", content=post, author_id=user.id, author_full_name=user.full_name)
+                    for post in posts
+                ]
             )
 
-        if self.model.link is not None:
-            old_model = self.model.find(link=link)
-            if old_model is not None:
-                logger.info(f"Post already exists in the database: {link}")
-
-                return
-
-        logger.info(f"Starting scrapping data for profile: {link}")
-
-        self.login()
-
-        soup = self._get_page_content(link)
-
-        data = {  # noqa
-            "Name": self._scrape_section(soup, "h1", class_="text-heading-xlarge"),
-            "About": self._scrape_section(soup, "div", class_="display-flex ph5 pv3"),
-            "Main Page": self._scrape_section(soup, "div", {"id": "main-content"}),
-            "Experience": self._scrape_experience(link),
-            "Education": self._scrape_education(link),
-        }
-
-        self.driver.get(link)
-        time.sleep(5)
-        button = self.driver.find_element(
-            By.CSS_SELECTOR, ".app-aware-link.profile-creator-shared-content-view__footer-action"
-        )
-        button.click()
-
-        # Scrolling and scraping posts
-        self.scroll_page()
-        soup = BeautifulSoup(self.driver.page_source, "html.parser")
-        post_elements = soup.find_all(
-            "div",
-            class_="update-components-text relative update-components-update-v2__commentary",
-        )
-        buttons = soup.find_all("button", class_="update-components-image__image-link")
-        post_images = self._extract_image_urls(buttons)
-
-        posts = self._extract_posts(post_elements, post_images)
-        logger.info(f"Found {len(posts)} posts for profile: {link}")
-
-        self.driver.close()
-
-        user = kwargs["user"]
-        self.model.bulk_insert(
-            [
-                PostDocument(platform="linkedin", content=post, author_id=user.id, author_full_name=user.full_name)
-                for post in posts
-            ]
-        )
-
-        logger.info(f"Finished scrapping data for profile: {link}")
+            logger.info(f"Finished scrapping data for profile: {link}")
+        finally:
+            self.close()
 
     def _scrape_section(self, soup: BeautifulSoup, *args, **kwargs) -> str:
         """Scrape a specific section of the LinkedIn profile."""
@@ -130,10 +124,10 @@ class LinkedInCrawler(BaseSeleniumCrawler):
     def _get_page_content(self, url: str) -> BeautifulSoup:
         """Retrieve the page content of a given URL."""
 
-        self.driver.get(url)
+        self.page.goto(url)
         time.sleep(5)
 
-        return BeautifulSoup(self.driver.page_source, "html.parser")
+        return BeautifulSoup(self.page.content(), "html.parser")
 
     def _extract_posts(self, post_elements: List[Tag], post_images: Dict[str, str]) -> Dict[str, Dict[str, str]]:
         """
@@ -160,17 +154,17 @@ class LinkedInCrawler(BaseSeleniumCrawler):
     def _scrape_experience(self, profile_url: str) -> str:
         """Scrapes the Experience section of the LinkedIn profile."""
 
-        self.driver.get(profile_url + "/details/experience/")
+        self.page.goto(profile_url + "/details/experience/")
         time.sleep(5)
-        soup = BeautifulSoup(self.driver.page_source, "html.parser")
+        soup = BeautifulSoup(self.page.content(), "html.parser")
         experience_content = soup.find("section", {"id": "experience-section"})
 
         return experience_content.get_text(strip=True) if experience_content else ""
 
     def _scrape_education(self, profile_url: str) -> str:
-        self.driver.get(profile_url + "/details/education/")
+        self.page.goto(profile_url + "/details/education/")
         time.sleep(5)
-        soup = BeautifulSoup(self.driver.page_source, "html.parser")
+        soup = BeautifulSoup(self.page.content(), "html.parser")
         education_content = soup.find("section", {"id": "education-section"})
 
         return education_content.get_text(strip=True) if education_content else ""
